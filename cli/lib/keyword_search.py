@@ -1,5 +1,6 @@
 from .search_utils import load_movies
 from pathlib import Path
+from nltk.stem import PorterStemmer
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_PATH = PROJECT_ROOT/'data'/'stopwords.txt'
@@ -29,8 +30,8 @@ def tokenize (input : str) -> str:
     return tokens
 
 def token_match (input_tokens: list[str], output_tokens: list[str] ) -> list[str]:
-    output_set = set(output_tokens)
-    for token in filter(input_tokens):
+    output_set = set(filter(stem(output_tokens)))
+    for token in filter(stem(input_tokens)):
         if token in output_set:
             return True
     return False
@@ -40,3 +41,7 @@ def filter (input_tokens: list[str]) -> list[str]:
         stopwords = f.read().splitlines()
 
     return [token for token in input_tokens if token not in stopwords]
+
+def stem (input_tokens: list[str]) -> list[str]:
+    stemmer = PorterStemmer()
+    return [stemmer.stem(token) for token in input_tokens]
