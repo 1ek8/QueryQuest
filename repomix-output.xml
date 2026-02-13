@@ -53,37 +53,46 @@ pyproject.toml
 <files>
 This section contains the contents of the repository's files.
 
-<file path="cli/lib/keyword_search.py">
-from search_utils import load_movies
-
-def search_command(query: str, top_results: int = None):
-    movies = load_movies()
-    result = []
-    for movie in movies:
-        if query in movie["title"]:
-            result.append(movie)
-        if len(result) == top_results:
-            break
-    return movies
-</file>
-
 <file path="cli/lib/search_utils.py">
 import json
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DATA_PATH = PROJECT_ROOT/'data'/'movies.json'
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+MOVIES_PATH = PROJECT_ROOT/'data'/'movies.json'
+STOPWORDS_PATH = PROJECT_ROOT/'data'/'stopwords.txt'
 
 def load_movies() -> list[dict]:
-    with open(DATA_PATH, "r") as f:
+    with open(MOVIES_PATH, "r") as f:
         data = json.load(f)
     return data['movies']
+
+def read_stopwords () -> list[str]:
+    with open(STOPWORDS_PATH, "r") as f:
+        stopwords = f.read().splitlines()
+
+    return stopwords
+</file>
+
+<file path=".python-version">
+3.14
 </file>
 
 <file path=".repomixignore">
 data
 .venv
 .gitignore
+</file>
+
+<file path="pyproject.toml">
+[project]
+name = "queryquest"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "nltk>=3.9.2",
+]
 </file>
 
 <file path="cli/keyword_search_cli.py">
@@ -106,8 +115,8 @@ def main() -> None:
         case "search":
             print(f"Searching for: {args.query}")
             results = search_command(args.query)
-            for movie, i in enumerate(results):
-                print(f"{i}: {movie.title}")
+            for i, movie in enumerate(results):
+                print(f"{i}: {movie["title"]}")
             pass
         case _:
             parser.print_help()
@@ -117,18 +126,54 @@ if __name__ == "__main__":
     main()
 </file>
 
-<file path=".python-version">
-3.14
-</file>
+<file path="cli/lib/keyword_search.py">
+from .search_utils import load_movies
+from .search_utils import read_stopwords
+from nltk.stem import PorterStemmer
 
-<file path="pyproject.toml">
-[project]
-name = "queryquest"
-version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
-requires-python = ">=3.14"
-dependencies = []
+import string
+
+def search_command(query: str, top_results: int = None):
+    movies = load_movies()
+    result = []
+    for movie in movies:
+        if token_match( preprocess(query), preprocess(movie["title"])):
+            result.append(movie)
+        if len(result) == top_results:
+            break
+    return result
+
+def preprocess(input: str) -> str:
+    input = cleanse(input)
+    input = tokenize(input)
+    input = stem(input)
+    input = filter(input)
+    return input
+
+def cleanse (input: str) -> str:
+    input = input.lower()
+    result = input.translate(str.maketrans("", "", string.punctuation))
+    return result
+
+def tokenize (input : str) -> list[str]:
+    result = cleanse(input)
+    tokens = result.split()
+    tokens = [token for token in tokens if token]
+    return tokens
+
+def stem (input_tokens: list[str]) -> list[str]:
+    stemmer = PorterStemmer()
+    return [stemmer.stem(token) for token in input_tokens]
+
+def filter(input_token: list[str]) -> list[str]:
+    return [token for token in input_token if token not in read_stopwords()]
+
+def token_match (input_tokens: list[str], output_tokens: list[str] ) -> list[str]:
+    output_set = set(output_tokens)
+    for token in input_tokens:
+        if token in output_set:
+            return True
+    return False
 </file>
 
 </files>
