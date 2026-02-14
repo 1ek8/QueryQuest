@@ -2,7 +2,7 @@
 
 import argparse
 import json
-from lib.keyword_search import search_command
+from lib.keyword_search import search_command, InvertedIndex
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
@@ -10,6 +10,9 @@ def main() -> None:
 
     search_parser = subparsers.add_parser("search", help="Search movies ")
     search_parser.add_argument("query", type=str, help="Search query")
+
+    search_parser = subparsers.add_parser("build", help="Build Inverse Index ")
+    # search_parser.add_argument("query", type=str, help="Search query")
 
     args = parser.parse_args()
 
@@ -20,6 +23,12 @@ def main() -> None:
             for i, movie in enumerate(results):
                 print(f"{i}: {movie["title"]}")
             pass
+        case "build":
+            index = InvertedIndex()
+            index.build()
+            index.save()
+            docs = index.get_documents('merida')
+            print(docs[0])
         case _:
             parser.print_help()
 
