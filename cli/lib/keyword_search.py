@@ -1,3 +1,4 @@
+from collections import Counter
 from .search_utils import load_movies
 from .search_utils import read_stopwords
 from .search_utils import CACHE_PATH
@@ -35,13 +36,17 @@ class InvertedIndex:
     def __init__(self):
         self.index: dict[str, set[int]] = {}
         self.docmap: dict[int, dict] = {}
+        self.term_frequencies: dict[int, Counter] = {}
 
     def __add_document(self, doc_id: int, text: str):
         tokens = preprocess(text)
+        if doc_id not in self.term_frequencies:
+            self.term_frequencies[doc_id] = Counter()
         for token in tokens:
             if token not in self.index:
                 self.index[token] = set()
             self.index[token].add(doc_id)
+            self.term_frequencies[doc_id][token] += 1
 
     def get_documents(self, term: str) -> list[int]:
         term = cleanse(term)
@@ -61,18 +66,35 @@ class InvertedIndex:
             dump(self.index, f)
         with open(CACHE_PATH/'docmap.pkl', 'wb') as f:
             dump(self.docmap, f)
+        with open(CACHE_PATH/'term_frequencies.pkl', 'wb') as f:
+            dump(self.term_frequencies, f)
 
     def load(self):
         INDEX_PATH = CACHE_PATH/'index.pkl'
         DOCMAP_PATH = CACHE_PATH/'docmap.pkl'
+        TF_PATH = CACHE_PATH/'term_frequencies.pkl'
 
-        if not INDEX_PATH.exists() or not DOCMAP_PATH.exists():
-            raise FileNotFoundError("Index or docmap not found in cache directory")
+        if not INDEX_PATH.exists() or not DOCMAP_PATH.exists() or not TF_PATH.exists():
+            raise FileNotFoundError("Index, docmap or TF file not found in cache directory")
         
         with open(INDEX_PATH, "rb") as f:
             self.index = load(f)
         with open(DOCMAP_PATH, "rb") as f:
             self.docmap = load(f)
+        with open(TF_PATH, "rb") as f:
+            self.term_frequencies = load(f)
+
+    def get_tf(self, doc_id, term):
+        tokens = preprocess(term)
+        if len(tokens) == 0:
+            return 0
+        if len(tokens) > 1:
+            raise ValueError("Expected a single token term for TF calculation")
+        term = tokens[0]
+        count_dict = self.term_frequencies.get(doc_id)
+        if not count_dict:
+            return 0
+        return int(count_dict.get(term, 0))
 
 def preprocess(input: str) -> list[str]:
     input = cleanse(input)
