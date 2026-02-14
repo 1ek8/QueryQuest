@@ -27,8 +27,7 @@ def main() -> None:
             index = InvertedIndex()
             index.build()
             index.save()
-            docs = index.get_documents('merida')
-            print(docs[0])
+
         case _:
             parser.print_help()
 

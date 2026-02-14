@@ -2,20 +2,34 @@ from .search_utils import load_movies
 from .search_utils import read_stopwords
 from .search_utils import CACHE_PATH
 from nltk.stem import PorterStemmer
-from pickle import dump
+from pickle import dump, load
 import os
 
 import string
 
-def search_command(query: str, top_results: int = None):
-    movies = load_movies()
-    result = []
-    for movie in movies:
-        if token_match( preprocess(query), preprocess(movie["title"])):
-            result.append(movie)
-        if len(result) == top_results:
-            break
-    return result
+def search_command(query: str, top_results: int | None = 5):
+    index = InvertedIndex()
+    try:
+        index.load()
+    except FileNotFoundError:
+        return []
+    
+    tokens = preprocess(query)
+
+    seen: set[int] = set()
+    results: list[dict] = []
+    
+    for token in tokens:
+        docs = index.get_documents(token)
+        for doc in docs:
+            if doc in seen:
+                continue
+            seen.add(doc)
+            results.append(index.docmap[doc])
+            if(len(results) >= top_results):
+                return results
+    
+    return results
 
 class InvertedIndex:
     def __init__(self):
@@ -31,7 +45,7 @@ class InvertedIndex:
 
     def get_documents(self, term: str) -> list[int]:
         term = cleanse(term)
-        return sorted(list(self.index[term]))
+        return sorted(self.index.get(term, set()))
     
     def build(self):
         movies = load_movies()
@@ -48,7 +62,19 @@ class InvertedIndex:
         with open(CACHE_PATH/'docmap.pkl', 'wb') as f:
             dump(self.docmap, f)
 
-def preprocess(input: str) -> str:
+    def load(self):
+        INDEX_PATH = CACHE_PATH/'index.pkl'
+        DOCMAP_PATH = CACHE_PATH/'docmap.pkl'
+
+        if not INDEX_PATH.exists() or not DOCMAP_PATH.exists():
+            raise FileNotFoundError("Index or docmap not found in cache directory")
+        
+        with open(INDEX_PATH, "rb") as f:
+            self.index = load(f)
+        with open(DOCMAP_PATH, "rb") as f:
+            self.docmap = load(f)
+
+def preprocess(input: str) -> list[str]:
     input = cleanse(input)
     input = tokenize(input)
     input = stem(input)
