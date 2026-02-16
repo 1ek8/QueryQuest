@@ -1,5 +1,5 @@
 from collections import Counter
-from .search_utils import load_movies
+from .search_utils import BM25_K1, load_movies
 from .search_utils import read_stopwords
 from .search_utils import CACHE_PATH
 from nltk.stem import PorterStemmer
@@ -38,6 +38,11 @@ class InvertedIndex:
         self.index: dict[str, set[int]] = {}
         self.docmap: dict[int, dict] = {}
         self.term_frequencies: dict[int, Counter] = {}
+
+    def get_bm25_tf(self, doc_id, term, k1=BM25_K1):
+        tf = self.get_tf(doc_id, term)
+        bm25_tf = (tf * (k1 + 1)) / (tf + k1)
+        return bm25_tf
 
     def __add_document(self, doc_id: int, text: str):
         tokens = preprocess(text)

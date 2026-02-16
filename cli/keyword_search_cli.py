@@ -2,6 +2,7 @@
 
 import argparse
 import json
+from lib.search_utils import BM25_K1
 from lib.keyword_search import search_command, InvertedIndex
 
 def main() -> None:
@@ -26,7 +27,12 @@ def main() -> None:
     search_parser.add_argument("term", type = str, help="search term")
 
     search_parser = subparsers.add_parser("bm25idf", help="get inverse document frequency for bm25")
-    search_parser.add_argument("term", type = str, help="search term for idf")    
+    search_parser.add_argument("term", type = str, help="search term for idf")   
+
+    search_parser = subparsers.add_parser("bm25tf", help="get bm25 saturated term frequency ")
+    search_parser.add_argument("doc_id", type = int, help="search document")    
+    search_parser.add_argument("term", type = str, help="search term") 
+    search_parser.add_argument("k1", type = float, help="k1 value", nargs='?', default=BM25_K1) 
 
     args = parser.parse_args()
 
@@ -66,6 +72,12 @@ def main() -> None:
             index.load()
             bm25idf = index.get_bm25_idf(args.term)
             print(f"{bm25idf:.2f}")
+
+        case "bm25tf":
+            index = InvertedIndex()
+            index.load()
+            bm25_tf = index.get_bm25_tf(args.doc_id, args.term, args.k1)
+            print(f"{bm25_tf:.2f}")
 
         case _:
             parser.print_help()

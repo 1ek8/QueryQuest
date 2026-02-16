@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+BM25_K1 = 1.5
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 MOVIES_PATH = PROJECT_ROOT/'data'/'movies.json'
 STOPWORDS_PATH = PROJECT_ROOT/'data'/'stopwords.txt'
