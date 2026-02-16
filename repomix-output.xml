@@ -117,6 +117,16 @@ def main() -> None:
     search_parser.add_argument("doc_id", type = int, help="search document")    
     search_parser.add_argument("term", type = str, help="search term")
 
+    search_parser = subparsers.add_parser("idf", help="get inverse document frequency ")
+    search_parser.add_argument("term", type = str, help="search term for idf")    
+
+    search_parser = subparsers.add_parser("tfidf", help="get term frequency ")
+    search_parser.add_argument("doc_id", type = int, help="search document")    
+    search_parser.add_argument("term", type = str, help="search term")
+
+    search_parser = subparsers.add_parser("bm25idf", help="get inverse document frequency for bm25")
+    search_parser.add_argument("term", type = str, help="search term for idf")    
+
     args = parser.parse_args()
 
     match args.command:
@@ -125,7 +135,7 @@ def main() -> None:
             results = search_command(args.query)
             for i, movie in enumerate(results):
                 print(f"{i}: {movie["title"]}")
-            pass
+
         case "build":
             index = InvertedIndex()
             index.build()
@@ -136,6 +146,25 @@ def main() -> None:
             index.load()
             tf = index.get_tf(args.doc_id, args.term)
             print(f"{tf}")
+
+        case "idf":
+            index = InvertedIndex()
+            index.load()
+            idf = index.get_idf(args.term)
+            print(f"{idf:.2f}")
+
+        case "tfidf":
+            index = InvertedIndex()
+            index.load()
+            tf = index.get_tf(args.doc_id, args.term)
+            idf = index.get_idf(args.term)
+            print(f"{idf*tf:.2f}")
+
+        case "bm25idf":
+            index = InvertedIndex()
+            index.load()
+            bm25idf = index.get_bm25_idf(args.term)
+            print(f"{bm25idf:.2f}")
 
         case _:
             parser.print_help()
@@ -152,6 +181,7 @@ from .search_utils import read_stopwords
 from .search_utils import CACHE_PATH
 from nltk.stem import PorterStemmer
 from pickle import dump, load
+import math
 import os
 
 import string
@@ -243,6 +273,30 @@ class InvertedIndex:
         if not count_dict:
             return 0
         return int(count_dict.get(term, 0))
+
+    def get_idf(self, term: str):
+        total_doc_count = len(self.docmap)
+        tokens = preprocess(term)
+
+        if(len(tokens) != 1):
+            return 0
+        
+        token = tokens[0]
+        term_match_doc_count = len(self.index.get(token, set()))
+        
+        return math.log( (total_doc_count + 1)/(term_match_doc_count + 1) )
+    
+    def get_bm25_idf(self, term: str) -> float:
+        tokens = preprocess(term)
+        if(len(tokens) != 1):
+            return 0
+        token = tokens[0]
+
+        N = len(self.docmap)
+        df = len(self.index.get(token, set()))
+
+        return math.log10((N - df + 0.5) / (df + 0.5) + 1)
+        pass
 
 def preprocess(input: str) -> list[str]:
     input = cleanse(input)

@@ -4,6 +4,7 @@ from .search_utils import read_stopwords
 from .search_utils import CACHE_PATH
 from nltk.stem import PorterStemmer
 from pickle import dump, load
+import math
 import os
 
 import string
@@ -95,6 +96,29 @@ class InvertedIndex:
         if not count_dict:
             return 0
         return int(count_dict.get(term, 0))
+
+    def get_idf(self, term: str):
+        total_doc_count = len(self.docmap)
+        tokens = preprocess(term)
+
+        if(len(tokens) != 1):
+            return 0
+        
+        token = tokens[0]
+        term_match_doc_count = len(self.index.get(token, set()))
+        
+        return math.log( (total_doc_count + 1)/(term_match_doc_count + 1) )
+    
+    def get_bm25_idf(self, term: str) -> float:
+        tokens = preprocess(term)
+        if(len(tokens) != 1):
+            return 0
+        token = tokens[0]
+
+        N = len(self.docmap)
+        df = len(self.index.get(token, set()))
+
+        return math.log((N - df + 0.5) / (df + 0.5) + 1)
 
 def preprocess(input: str) -> list[str]:
     input = cleanse(input)
