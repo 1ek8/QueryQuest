@@ -2,7 +2,7 @@
 
 import argparse
 import json
-from lib.search_utils import BM25_K1
+from lib.search_utils import BM25_B, BM25_K1
 from lib.keyword_search import search_command, InvertedIndex
 
 def main() -> None:
@@ -33,6 +33,7 @@ def main() -> None:
     search_parser.add_argument("doc_id", type = int, help="search document")    
     search_parser.add_argument("term", type = str, help="search term") 
     search_parser.add_argument("k1", type = float, help="k1 value", nargs='?', default=BM25_K1) 
+    search_parser.add_argument("b", type=float, nargs='?', default=BM25_B, help="Tunable BM25 b parameter")
 
     args = parser.parse_args()
 
@@ -76,7 +77,7 @@ def main() -> None:
         case "bm25tf":
             index = InvertedIndex()
             index.load()
-            bm25_tf = index.get_bm25_tf(args.doc_id, args.term, args.k1)
+            bm25_tf = index.get_bm25_tf(args.doc_id, args.term, args.k1, args.b)
             print(f"{bm25_tf:.2f}")
 
         case _:

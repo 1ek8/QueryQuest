@@ -79,6 +79,9 @@ dependencies = [
 import json
 from pathlib import Path
 
+BM25_K1 = 1.5
+BM25_B = 0.75
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 MOVIES_PATH = PROJECT_ROOT/'data'/'movies.json'
 STOPWORDS_PATH = PROJECT_ROOT/'data'/'stopwords.txt'
@@ -101,6 +104,7 @@ def read_stopwords () -> list[str]:
 
 import argparse
 import json
+from lib.search_utils import BM25_B, BM25_K1
 from lib.keyword_search import search_command, InvertedIndex
 
 def main() -> None:
@@ -125,7 +129,13 @@ def main() -> None:
     search_parser.add_argument("term", type = str, help="search term")
 
     search_parser = subparsers.add_parser("bm25idf", help="get inverse document frequency for bm25")
-    search_parser.add_argument("term", type = str, help="search term for idf")    
+    search_parser.add_argument("term", type = str, help="search term for idf")   
+
+    search_parser = subparsers.add_parser("bm25tf", help="get bm25 saturated term frequency ")
+    search_parser.add_argument("doc_id", type = int, help="search document")    
+    search_parser.add_argument("term", type = str, help="search term") 
+    search_parser.add_argument("k1", type = float, help="k1 value", nargs='?', default=BM25_K1) 
+    search_parser.add_argument("b", type=float, nargs='?', default=BM25_B, help="Tunable BM25 b parameter")
 
     args = parser.parse_args()
 
@@ -166,6 +176,12 @@ def main() -> None:
             bm25idf = index.get_bm25_idf(args.term)
             print(f"{bm25idf:.2f}")
 
+        case "bm25tf":
+            index = InvertedIndex()
+            index.load()
+            bm25_tf = index.get_bm25_tf(args.doc_id, args.term, args.k1)
+            print(f"{bm25_tf:.2f}")
+
         case _:
             parser.print_help()
 
@@ -176,7 +192,8 @@ if __name__ == "__main__":
 
 <file path="cli/lib/keyword_search.py">
 from collections import Counter
-from .search_utils import load_movies
+from pydoc import doc
+from .search_utils import BM25_B, BM25_K1, load_movies
 from .search_utils import read_stopwords
 from .search_utils import CACHE_PATH
 from nltk.stem import PorterStemmer
@@ -215,6 +232,16 @@ class InvertedIndex:
         self.index: dict[str, set[int]] = {}
         self.docmap: dict[int, dict] = {}
         self.term_frequencies: dict[int, Counter] = {}
+        self.doc_lengths: Counter[int, int] = {}
+
+    def get_bm25_tf(self, doc_id, term, k1=BM25_K1):
+        b = BM25_B
+        if self.__get_avg_doc_length == 0:
+            return 0.0
+        l_norm = 1 - b + b * (self.doc_lengths[doc_id] / self.__get_avg_doc_length)
+        tf = self.get_tf(doc_id, term)
+        bm25_tf = (tf * (k1 + 1)) / (tf + k1 * l_norm)
+        return bm25_tf
 
     def __add_document(self, doc_id: int, text: str):
         tokens = preprocess(text)
@@ -225,6 +252,7 @@ class InvertedIndex:
                 self.index[token] = set()
             self.index[token].add(doc_id)
             self.term_frequencies[doc_id][token] += 1
+            self.doc_lengths[doc_id] += 1
 
     def get_documents(self, term: str) -> list[int]:
         term = cleanse(term)
@@ -246,11 +274,14 @@ class InvertedIndex:
             dump(self.docmap, f)
         with open(CACHE_PATH/'term_frequencies.pkl', 'wb') as f:
             dump(self.term_frequencies, f)
+        with open(CACHE_PATH/'doc_lengths.pkl', 'wb') as f:
+            dump(self.doc_lengths, f)
 
     def load(self):
         INDEX_PATH = CACHE_PATH/'index.pkl'
         DOCMAP_PATH = CACHE_PATH/'docmap.pkl'
         TF_PATH = CACHE_PATH/'term_frequencies.pkl'
+        DOCLENGTH_PATH = CACHE_PATH/'doc_lengths.pkl'
 
         if not INDEX_PATH.exists() or not DOCMAP_PATH.exists() or not TF_PATH.exists():
             raise FileNotFoundError("Index, docmap or TF file not found in cache directory")
@@ -261,6 +292,8 @@ class InvertedIndex:
             self.docmap = load(f)
         with open(TF_PATH, "rb") as f:
             self.term_frequencies = load(f)
+        with open(DOCLENGTH_PATH, "rb") as f:
+            self.doc_lengths = load(f)
 
     def get_tf(self, doc_id, term):
         tokens = preprocess(term)
@@ -273,6 +306,11 @@ class InvertedIndex:
         if not count_dict:
             return 0
         return int(count_dict.get(term, 0))
+    
+    def __get_avg_doc_length(self) -> float:
+        if len(self.doc_lengths == 0):
+            return 0.0
+        return sum(self.doc_lengths.values())/len(self.doc_lengths)
 
     def get_idf(self, term: str):
         total_doc_count = len(self.docmap)
@@ -295,8 +333,7 @@ class InvertedIndex:
         N = len(self.docmap)
         df = len(self.index.get(token, set()))
 
-        return math.log10((N - df + 0.5) / (df + 0.5) + 1)
-        pass
+        return math.log((N - df + 0.5) / (df + 0.5) + 1)
 
 def preprocess(input: str) -> list[str]:
     input = cleanse(input)

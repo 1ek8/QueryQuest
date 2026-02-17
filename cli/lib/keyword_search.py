@@ -1,5 +1,6 @@
 from collections import Counter
-from .search_utils import BM25_K1, load_movies
+from pydoc import doc
+from .search_utils import BM25_B, BM25_K1, load_movies
 from .search_utils import read_stopwords
 from .search_utils import CACHE_PATH
 from nltk.stem import PorterStemmer
@@ -38,10 +39,23 @@ class InvertedIndex:
         self.index: dict[str, set[int]] = {}
         self.docmap: dict[int, dict] = {}
         self.term_frequencies: dict[int, Counter] = {}
+        self.doc_lengths: Counter[int, int] = Counter()
 
-    def get_bm25_tf(self, doc_id, term, k1=BM25_K1):
+    def get_bm25_tf(self, doc_id, term, k1=BM25_K1, b=BM25_B):
+        b = BM25_B
+        avg = self.__get_avg_doc_length()
+        doc_len = self.doc_lengths.get(doc_id, 0)
+
+        if avg == 0:
+            return 0.0
+        
+        l_norm = 1 - b + b * (doc_len / avg)
+
         tf = self.get_tf(doc_id, term)
-        bm25_tf = (tf * (k1 + 1)) / (tf + k1)
+        if tf == 0:
+            return 0.0
+        
+        bm25_tf = (tf * (k1 + 1)) / (tf + k1 * l_norm)
         return bm25_tf
 
     def __add_document(self, doc_id: int, text: str):
@@ -53,6 +67,7 @@ class InvertedIndex:
                 self.index[token] = set()
             self.index[token].add(doc_id)
             self.term_frequencies[doc_id][token] += 1
+            self.doc_lengths[doc_id] += 1
 
     def get_documents(self, term: str) -> list[int]:
         term = cleanse(term)
@@ -74,11 +89,14 @@ class InvertedIndex:
             dump(self.docmap, f)
         with open(CACHE_PATH/'term_frequencies.pkl', 'wb') as f:
             dump(self.term_frequencies, f)
+        with open(CACHE_PATH/'doc_lengths.pkl', 'wb') as f:
+            dump(self.doc_lengths, f)
 
     def load(self):
         INDEX_PATH = CACHE_PATH/'index.pkl'
         DOCMAP_PATH = CACHE_PATH/'docmap.pkl'
         TF_PATH = CACHE_PATH/'term_frequencies.pkl'
+        DOCLENGTH_PATH = CACHE_PATH/'doc_lengths.pkl'
 
         if not INDEX_PATH.exists() or not DOCMAP_PATH.exists() or not TF_PATH.exists():
             raise FileNotFoundError("Index, docmap or TF file not found in cache directory")
@@ -89,6 +107,8 @@ class InvertedIndex:
             self.docmap = load(f)
         with open(TF_PATH, "rb") as f:
             self.term_frequencies = load(f)
+        with open(DOCLENGTH_PATH, "rb") as f:
+            self.doc_lengths = load(f)
 
     def get_tf(self, doc_id, term):
         tokens = preprocess(term)
@@ -101,6 +121,11 @@ class InvertedIndex:
         if not count_dict:
             return 0
         return int(count_dict.get(term, 0))
+    
+    def __get_avg_doc_length(self) -> float:
+        if len(self.doc_lengths) == 0:
+            return 0.0
+        return sum(self.doc_lengths.values())/len(self.doc_lengths)
 
     def get_idf(self, term: str):
         total_doc_count = len(self.docmap)
