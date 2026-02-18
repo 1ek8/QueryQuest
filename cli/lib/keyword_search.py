@@ -57,6 +57,23 @@ class InvertedIndex:
         
         bm25_tf = (tf * (k1 + 1)) / (tf + k1 * l_norm)
         return bm25_tf
+    
+    def bm25(self, doc_id, term):
+        bm25 = self.get_bm25_tf(doc_id, term) * self.get_bm25_idf(term)
+        return bm25
+    
+    def bm25_search(self, query, limit:int = 5):
+        tokens = preprocess(query)
+        if not tokens:
+            return []
+        scores: dict[int, float] = {}
+        for doc_id in self.docmap.keys():
+            score = 0.0
+            for token in tokens:
+                score += self.bm25(doc_id, token)
+            scores[doc_id] = score
+        ranked = sorted(scores.items(), key = lambda x: (-x[1], x[0]))
+        return ranked[:limit]
 
     def __add_document(self, doc_id: int, text: str):
         tokens = preprocess(text)

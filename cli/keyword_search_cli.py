@@ -12,28 +12,38 @@ def main() -> None:
     search_parser = subparsers.add_parser("search", help="Search movies ")
     search_parser.add_argument("query", type=str, help="Search query")
 
-    search_parser = subparsers.add_parser("build", help="Build Inverse Index ")
+    build_parser = subparsers.add_parser("build", help="Build Inverse Index ")
     # search_parser.add_argument("query", type=str, help="Search query")
 
-    search_parser = subparsers.add_parser("tf", help="get term frequency ")
-    search_parser.add_argument("doc_id", type = int, help="search document")    
-    search_parser.add_argument("term", type = str, help="search term")
+    tf_parser = subparsers.add_parser("tf", help="get term frequency ")
+    tf_parser.add_argument("doc_id", type = int, help="search document")    
+    tf_parser.add_argument("term", type = str, help="search term")
 
-    search_parser = subparsers.add_parser("idf", help="get inverse document frequency ")
-    search_parser.add_argument("term", type = str, help="search term for idf")    
+    idf_parser = subparsers.add_parser("idf", help="get inverse document frequency ")
+    idf_parser.add_argument("term", type = str, help="search term for idf")    
 
-    search_parser = subparsers.add_parser("tfidf", help="get term frequency ")
-    search_parser.add_argument("doc_id", type = int, help="search document")    
-    search_parser.add_argument("term", type = str, help="search term")
+    tfidf_parser = subparsers.add_parser("tfidf", help="get term frequency ")
+    tfidf_parser.add_argument("doc_id", type = int, help="search document")    
+    tfidf_parser.add_argument("term", type = str, help="search term")
 
-    search_parser = subparsers.add_parser("bm25idf", help="get inverse document frequency for bm25")
-    search_parser.add_argument("term", type = str, help="search term for idf")   
+    bm25idf_parser = subparsers.add_parser("bm25idf", help="get inverse document frequency for bm25")
+    bm25idf_parser.add_argument("term", type = str, help="search term for idf")   
 
-    search_parser = subparsers.add_parser("bm25tf", help="get bm25 saturated term frequency ")
-    search_parser.add_argument("doc_id", type = int, help="search document")    
-    search_parser.add_argument("term", type = str, help="search term") 
-    search_parser.add_argument("k1", type = float, help="k1 value", nargs='?', default=BM25_K1) 
-    search_parser.add_argument("b", type=float, nargs='?', default=BM25_B, help="Tunable BM25 b parameter")
+    bm25tf_parser = subparsers.add_parser("bm25tf", help="get bm25 saturated term frequency ")
+    bm25tf_parser.add_argument("doc_id", type = int, help="search document")    
+    bm25tf_parser.add_argument("term", type = str, help="search term") 
+    bm25tf_parser.add_argument("k1", type = float, help="k1 value", nargs='?', default=BM25_K1) 
+    bm25tf_parser.add_argument("b", type=float, nargs='?', default=BM25_B, help="Tunable BM25 b parameter")
+
+    bm25_parser = subparsers.add_parser("bm25", help="get bm25 score ")
+    bm25_parser.add_argument("doc_id", type = int, help="search document")    
+    bm25_parser.add_argument("term", type = str, help="search term") 
+    bm25_parser.add_argument("k1", type = float, help="k1 value", nargs='?', default=BM25_K1) 
+    bm25_parser.add_argument("b", type=float, nargs='?', default=BM25_B, help="Tunable BM25 b parameter")
+
+    bm25search_parser = subparsers.add_parser("bm25search", help="Search movies using full BM25 scoring")
+    bm25search_parser.add_argument("query", type=str, help="Search query")
+    bm25search_parser.add_argument("limit", type=int, help="Search limit", nargs='?', default=5)
 
     args = parser.parse_args()
 
@@ -79,6 +89,15 @@ def main() -> None:
             index.load()
             bm25_tf = index.get_bm25_tf(args.doc_id, args.term, args.k1, args.b)
             print(f"{bm25_tf:.2f}")
+
+        case "bm25search":
+            index = InvertedIndex()
+            index.load()
+            result = index.bm25_search(args.query, args.limit)
+            for i, (doc_id, score) in enumerate(result, start=1):
+                movie = index.docmap[doc_id]
+                title = movie["title"]
+                print(f"{i}. ({doc_id}) {title} - Score: {score:.2f}")
 
         case _:
             parser.print_help()
