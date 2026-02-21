@@ -1,37 +1,9 @@
 from collections import Counter
-from pydoc import doc
-from utils import BM25_B, BM25_K1, cleanse, load_movies
-from file_handler import load_file, load_stopwords, load_movies, load, save, save_file
-from utils import CACHE_PATH
-from nltk.stem import PorterStemmer
-from pickle import dump, load
 import math
-import string
+
+from utils import BM25_B, BM25_K1, cleanse
+from file_handler import load_file, load_stopwords, load_movies, save_file
 from utils import preprocess
-
-def search_command(query: str, top_results: int | None = 5):
-    index = InvertedIndex()
-    try:
-        index.load()
-    except FileNotFoundError:
-        return []
-    
-    tokens = preprocess(query)
-
-    seen: set[int] = set()
-    results: list[dict] = []
-    
-    for token in tokens:
-        docs = index.get_documents(token)
-        for doc in docs:
-            if doc in seen:
-                continue
-            seen.add(doc)
-            results.append(index.docmap[doc])
-            if(len(results) >= top_results):
-                return results
-    
-    return results
 
 class InvertedIndex:
     def __init__(self):

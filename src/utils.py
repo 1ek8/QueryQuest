@@ -1,6 +1,6 @@
 import string
 from nltk.stem import PorterStemmer
-from cli.lib.search_utils import read_stopwords
+from file_handler import load_stopwords
 
 stemmer = PorterStemmer()
 
@@ -29,7 +29,7 @@ def stem (input_tokens: list[str]) -> list[str]:
     return [stemmer.stem(token) for token in input_tokens]
 
 def filter(input_token: list[str]) -> list[str]:
-    return [token for token in input_token if token not in read_stopwords()]
+    return [token for token in input_token if token not in load_stopwords()]
 
 def token_match (input_tokens: list[str], output_tokens: list[str] ) -> list[str]:
     output_set = set(output_tokens)
