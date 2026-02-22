@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any, List
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 DATA_DIR = PROJECT_ROOT / 'data'
 CACHE_DIR = PROJECT_ROOT / 'cache'

@@ -1,6 +1,6 @@
-from search.keyword_search import InvertedIndex
-from models import Movie
-from utils import preprocess
+from index.inverted_index import InvertedIndex
+from models import Movie, SearchResult
+from lib.utils import preprocess
 
 def token_search(query: str, top_results: int | None = 5):
     index = InvertedIndex()
@@ -23,10 +23,9 @@ def token_search(query: str, top_results: int | None = 5):
                 continue
             seen.add(doc)
             movie = index.docmap[doc]
-            results.append(Movie(
+            results.append(SearchResult(
                 movie['id'],
-                movie['title'],
-                movie['description']
+                movie['title']  
             ))
             if(len(results) >= top_results):
                 return results

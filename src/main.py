@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
 import argparse
-from search.token_search import token_search
-from search.keyword_search import InvertedIndex
-from utils import BM25_B, BM25_K1
+from lib.token_search import token_search
+from index.inverted_index import InvertedIndex
+from lib.utils import BM25_B, BM25_K1
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
@@ -50,9 +50,10 @@ def main() -> None:
     match args.command:
         case "search":
             print(f"Searching for: {args.query}")
-            results = token_search(args.query)
-            for i, movie in enumerate(results):
-                print(f"{movie.id} - {movie.title}")
+            search_results = token_search(args.query)
+            for result in search_results:
+                # print(f"{movie.id} - {movie.title}")
+                print(result)
 
         case "build":
             index = InvertedIndex()

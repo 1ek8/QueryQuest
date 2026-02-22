@@ -1,6 +1,6 @@
 import string
 from nltk.stem import PorterStemmer
-from file_handler import load_stopwords
+from lib.file_handler import load_stopwords
 
 stemmer = PorterStemmer()
 

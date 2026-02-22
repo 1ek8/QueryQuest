@@ -1,9 +1,9 @@
 from collections import Counter
 import math
 
-from utils import BM25_B, BM25_K1, cleanse
-from file_handler import load_file, load_stopwords, load_movies, save_file
-from utils import preprocess
+from lib.utils import BM25_B, BM25_K1, cleanse
+from lib.file_handler import load_file, load_stopwords, load_movies, save_file
+from lib.utils import preprocess
 
 class InvertedIndex:
     def __init__(self):
@@ -117,7 +117,7 @@ class InvertedIndex:
         for doc_id in self.docmap.keys():
             score = 0.0
             for token in tokens:
-                score += self.bm25(doc_id, token)
+                score += self.get_bm25(doc_id, token)
             scores[doc_id] = score
         ranked = sorted(scores.items(), key = lambda x: (-x[1], x[0]))
         return ranked[:limit]
