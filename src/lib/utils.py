@@ -1,3 +1,4 @@
+import math
 import string
 from nltk.stem import PorterStemmer
 from lib.file_handler import load_stopwords
@@ -37,5 +38,12 @@ def token_match (input_tokens: list[str], output_tokens: list[str] ) -> list[str
         if token in output_set:
             return True
     return False
+
+def vector_magnitude (vector : list[float]):
+    sum: float = 0
+    for element in vector:
+        sum += element**2
+
+    return math.sqrt(sum)
 
 

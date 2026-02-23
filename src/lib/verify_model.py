@@ -1,4 +1,4 @@
-from src.embedding.vector import Vector
+from embedding.vector import Vector
 
 
 def verify_model():

@@ -2,7 +2,7 @@
 
 import argparse
 
-from src.lib import verify_model
+from lib import verify_model
 
 def main():
     parser = argparse.ArgumentParser(description="Semantic Search CLI")
