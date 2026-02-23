@@ -1,0 +1,25 @@
+#!/usr/bin/env python3
+
+import argparse
+
+from src.lib import verify_model
+
+def main():
+    parser = argparse.ArgumentParser(description="Semantic Search CLI")
+    subparsers = parser.add_subparsers(dest="command", help="commands")
+
+    verify_parser = subparsers.add_parser(command="verify", help="verify model")
+    
+    args = parser.parse_args()
+
+    match args.command:
+
+        case "verify":
+            verify_model()
+
+
+        case _:
+            parser.print_help()
+
+if __name__ == "__main__":
+    main()
