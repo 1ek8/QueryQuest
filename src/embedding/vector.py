@@ -1,10 +1,20 @@
+from pydoc import doc
 from sentence_transformers import SentenceTransformer
-
+from torch import embedding
 from lib.utils import  vector_magnitude
+
+import numpy as np
+
+from lib.file_handler import CACHE_DIR, load_movies
+
+EMBEDDINGS_PATH = CACHE_DIR / 'movie_embeddings.npy'
 
 class Vector:
     def __init__(self):
         self.model = SentenceTransformer('all-MiniLM-L6-v2')
+        self.embeddings = None
+        self.documents = None
+        self.document_map = {}
 
     def add_vectors(self, vec1, vec2):
         
@@ -51,7 +61,32 @@ class Vector:
         if not text or text.strip() == "":
             raise ValueError("Input text cannot be empty or contain only whitespace.")
         embedding = self.model.encode(text)
-        return embedding    
+        return embedding
+
+    def build_embeddings(self, documents):
+        self.documents = documents
+        docs_info = []
+        for doc in self.documents:
+            self.document_map[doc['id']] = doc
+            doc_rep = f"{doc['title']}: {doc['description']}"
+            docs_info.append(doc_rep)
+        self.embeddings = self.model.encode(docs_info, show_progress_bar=True)
+        CACHE_DIR.mkdir(exist_ok=True)
+        np.save(str(EMBEDDINGS_PATH), self.embeddings)
+        return self.embeddings
+
+    def load_or_create_embeddings(self, documents):
+        self.documents = documents
+        for doc in self.documents:
+            self.document_map[doc['id']] = doc
+
+        if EMBEDDINGS_PATH.exists():
+            self.embeddings = np.load(str(EMBEDDINGS_PATH))
+            if len(self.embeddings) == len(documents):
+                return self.embeddings
+            
+        return self.build_embeddings(documents)
+
 
 def verify_model():
     vector = Vector()
@@ -65,3 +100,11 @@ def embed_text(text):
     print(f"Text: {text}")
     print(f"First 3 dimensions: {embedding[:3]}")
     print(f"Dimensions: {embedding.shape[0]}")
+
+def verify_embeddings():
+    vector = Vector()
+    documents = load_movies()
+    embeddings = vector.load_or_create_embeddings(documents)
+
+    print(f"Number of docs:   {len(documents)}")
+    print(f"Embeddings shape: {embeddings.shape[0]} vectors in {embeddings.shape[1]} dimensions")
