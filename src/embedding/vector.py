@@ -6,6 +6,7 @@ from lib.utils import  vector_magnitude
 import numpy as np
 
 from lib.file_handler import CACHE_DIR, load_movies
+from models import SearchResult
 
 EMBEDDINGS_PATH = CACHE_DIR / 'movie_embeddings.npy'
 
@@ -13,7 +14,7 @@ class Vector:
     def __init__(self):
         self.model = SentenceTransformer('all-MiniLM-L6-v2')
         self.embeddings = None
-        self.documents = None
+        self.documents = load_movies()
         self.document_map = {}
 
     def add_vectors(self, vec1, vec2):
@@ -87,6 +88,23 @@ class Vector:
             
         return self.build_embeddings(documents)
 
+    def search(self, query, limit):
+        if self.embeddings is None:
+            raise ValueError("No embeddings loaded. Call `load_or_create_embeddings` first.")
+        query_embedding = self.generate_embedding(query)
+        similarities = []
+        for i, embedding in enumerate(self.embeddings):
+            similarity = self.cosine_similar(query_embedding, embedding)
+            doc = self.documents[i]
+            similarities.append((similarity, doc))
+
+        similarities.sort(key = lambda x: x[0], reverse=True)
+        
+        results = []
+        for score, doc in similarities[:limit]:
+            results.append(SearchResult(doc['id'], doc['title'], score))
+
+        return results
 
 def verify_model():
     vector = Vector()
@@ -108,3 +126,10 @@ def verify_embeddings():
 
     print(f"Number of docs:   {len(documents)}")
     print(f"Embeddings shape: {embeddings.shape[0]} vectors in {embeddings.shape[1]} dimensions")
+
+def embed_query(query):
+    vector = Vector()
+    embedding = vector.generate_embedding(query)
+    print(f"Query: {query}")
+    print(f"First 5 dimensions: {embedding[:5]}")
+    print(f"Shape: {embedding.shape}")
