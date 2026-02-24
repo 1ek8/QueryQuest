@@ -2,13 +2,20 @@
 
 import argparse
 
-from lib import verify_model
+from click import command
+
+from embedding.vector import embed_text, verify_model
+
+
 
 def main():
     parser = argparse.ArgumentParser(description="Semantic Search CLI")
     subparsers = parser.add_subparsers(dest="command", help="commands")
 
-    verify_parser = subparsers.add_parser(command="verify", help="verify model")
+    verify_parser = subparsers.add_parser("verify", help="verify model")
+
+    embedding_parser = subparsers.add_parser("embed_text", help="embed text")
+    embedding_parser.add_argument("text", type = str, help = "text to be embedded")
     
     args = parser.parse_args()
 
@@ -17,6 +24,8 @@ def main():
         case "verify":
             verify_model()
 
+        case "embed_text":
+            embed_text(args.text)
 
         case _:
             parser.print_help()

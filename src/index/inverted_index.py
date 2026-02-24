@@ -4,8 +4,10 @@ import math
 from lib.utils import BM25_B, BM25_K1, cleanse
 from lib.file_handler import load_file, load_stopwords, load_movies, save_file
 from lib.utils import preprocess
+from models import SearchResult
 
 class InvertedIndex:
+
     def __init__(self):
         self.index: dict[str, set[int]] = {}
         self.docmap: dict[int, dict] = {}
@@ -121,3 +123,34 @@ class InvertedIndex:
             scores[doc_id] = score
         ranked = sorted(scores.items(), key = lambda x: (-x[1], x[0]))
         return ranked[:limit]
+    
+
+def token_search(query: str, top_results: int | None = 5):
+    index = InvertedIndex()
+    try:
+        index.load()
+    except FileNotFoundError:
+        return []
+    
+    tokens = preprocess(query)
+    if not tokens:
+        return []
+
+    seen: set[int] = set()
+    results: list[dict] = []
+    
+    for token in tokens:
+        docs = index.get_documents(token)
+        for doc in docs:
+            if doc in seen:
+                continue
+            seen.add(doc)
+            movie = index.docmap[doc]
+            results.append(SearchResult(
+                movie['id'],
+                movie['title']  
+            ))
+            if(len(results) >= top_results):
+                return results
+    
+    return results

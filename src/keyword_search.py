@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
-from lib.token_search import token_search
-from index.inverted_index import InvertedIndex
+from index.inverted_index import InvertedIndex, token_search
 from lib.utils import BM25_B, BM25_K1
 
 def main() -> None:
