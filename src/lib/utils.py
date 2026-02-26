@@ -11,13 +11,16 @@ BM25_B = 0.75
 
 def preprocess(input: str) -> list[str]:
     input = cleanse(input)
+    input = lower(input)
     input = tokenize(input)
     input = stem(input)
     input = filter(input)
     return input
 
+def lower (input: str) -> str:
+    return input.lower()
+
 def cleanse (input: str) -> str:
-    input = input.lower()
     result = input.translate(str.maketrans("", "", string.punctuation))
     return result
 

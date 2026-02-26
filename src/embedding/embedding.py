@@ -10,7 +10,7 @@ from models import SearchResult
 
 EMBEDDINGS_PATH = CACHE_DIR / 'movie_embeddings.npy'
 
-class Vector:
+class Embeddings:
     def __init__(self):
         self.model = SentenceTransformer('all-MiniLM-L6-v2')
         self.embeddings = None
@@ -107,20 +107,20 @@ class Vector:
         return results
 
 def verify_model():
-    vector = Vector()
+    vector = Embeddings()
     
     print(f"Model loaded: {vector.model}")
     print(f"Max sequence length: {vector.model.max_seq_length}")
 
 def embed_text(text):
-    vector = Vector()
+    vector = Embeddings()
     embedding = vector.generate_embedding(text)
     print(f"Text: {text}")
     print(f"First 3 dimensions: {embedding[:3]}")
     print(f"Dimensions: {embedding.shape[0]}")
 
 def verify_embeddings():
-    vector = Vector()
+    vector = Embeddings()
     documents = load_movies()
     embeddings = vector.load_or_create_embeddings(documents)
 
@@ -128,7 +128,7 @@ def verify_embeddings():
     print(f"Embeddings shape: {embeddings.shape[0]} vectors in {embeddings.shape[1]} dimensions")
 
 def embed_query(query):
-    vector = Vector()
+    vector = Embeddings()
     embedding = vector.generate_embedding(query)
     print(f"Query: {query}")
     print(f"First 5 dimensions: {embedding[:5]}")
