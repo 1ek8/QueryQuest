@@ -5,7 +5,8 @@ import re
 
 from click import command
 
-from src.embedding.embedding import Embeddings, embed_query, embed_text, verify_embeddings, verify_model
+from semantics.chunking import Chunking, semantic_chunk
+from semantics.embedding import Embeddings, embed_query, embed_text, verify_embeddings, verify_model
 from lib.file_handler import load_movies
 from lib.utils import cleanse
 
@@ -36,6 +37,8 @@ def main():
     semantic_chunk_parser.add_argument('text', type=str, help='Text to chunk')
     semantic_chunk_parser.add_argument('--max_chunk_size', type=int, default=4, help='sentences per chunk (default: 4)')
     semantic_chunk_parser.add_argument('--overlap', type=int, default=0, help='no. of words to overlap b/w chunks')
+
+    embed_chunks_parser = subparsers.add_parser('embed-chunks', help='Embed document chunks')
 
     args = parser.parse_args()
 
@@ -71,14 +74,15 @@ def main():
                 print(chunk)
 
         case "semantic_chunk":
-            sentences = re.split(r"(?<=[.!?])\s+", args.text)
-            total_sentences = len(sentences)
-            chunks = []
-            step = max(1, args.max_chunk_size - args.overlap)
-            for j in range(0, total_sentences, step):
-                chunks.append(' '.join(sentences[j: j+args.max_chunk_size]))
+            chunks = semantic_chunk(args.text, args.max_chunk_size, args.overlap)
             for chunk in chunks:
-                print(f"{chunk}\n")         
+                print(f"{chunk}\n")
+
+        case 'embed-chunks':
+            movies = load_movies()
+            vector = Chunking()
+            embeddings = vector.load_or_create_chunk_embeddings(movies)
+            print(f"Generated {len(embeddings)} chunked embeddings")
 
         case _:
             parser.print_help()
