@@ -4,6 +4,7 @@ import re
 import numpy as np
 from lib.file_handler import CACHE_DIR
 from semantics.embedding import Embeddings
+from models import ChunkSearchResult
 
 CHUNK_EMBEDDING_PATH = CACHE_DIR / 'chunk_embeddings.npy'
 CHUNK_METADATA_PATH = CACHE_DIR / 'chunk_metadata.json'
@@ -19,7 +20,7 @@ class Chunking(Embeddings):
         self.document_map = {}
         for doc in documents:
             self.document_map[doc['id']] = doc
-
+    
         all_chunks = []
         chunk_metadata = []
 
@@ -65,6 +66,54 @@ class Chunking(Embeddings):
         
         return self.build_chunk_embeddings(documents)
 
+    def search_chunks(self, query: str, limit: int = 10):
+        embedder = Embeddings()
+        query_embedding = embedder.generate_embedding(query)
+        chunk_scores = [{}]
+
+        for idx, chunk_embedding in self.chunk_embeddings:
+            similarity = embedder.cosine_similar(chunk_embedding, query_embedding)
+            metadata = self.chunk_metadata[idx]
+            
+            chunk_scores.append({
+                "chunk_idx": metadata["chunk_idx"],
+                "movie_idx": metadata["movie_idx"],
+                "score": similarity
+            })
+
+        movie_scores = {}
+
+        for chunk_score in chunk_scores:
+            if chunk_score["movie_idx"] not in movie_scores or chunk_score["score"] > movie_scores[chunk_score["movie_idx"]]:
+                movie_scores[chunk_score["movie_idx"]] = chunk_score["score"]
+
+        movie_scores = sorted(movie_scores.values(), lambda x: x["score"], reverse=True)
+        movie_scores = movie_scores[:limit]
+
+        final_result = []
+        for item in movie_scores:
+            movie = self.documents[item["movie_idx"]]
+
+            id = item["movie_idx"]
+            title = movie.get("title")
+            document = movie.get("description", "")
+            score = item["score"]
+
+            result = ChunkSearchResult(
+                id,
+                title,
+                document = document[:100],
+                score = round(score, 4),
+                metadata = {
+                    "chunk_idx": item["chunk_idx"],
+                    "movie_idx": id
+                }
+            )
+
+            final_result.append(result)
+
+        return final_result
+
 def semantic_chunk(text: str, max_chunk_size: int, overlap: int):
     sentences = re.split(r"(?<=[.!?])\s+", text)
     total_sentences = len(sentences)
@@ -73,4 +122,4 @@ def semantic_chunk(text: str, max_chunk_size: int, overlap: int):
     for j in range(0, total_sentences, step):
         chunks.append(' '.join(sentences[j: j+max_chunk_size]))
     return chunks
-        
+    

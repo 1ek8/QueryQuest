@@ -17,3 +17,14 @@ class SearchResult:
         if self.score is not None:
             return f"({self.movie_id}) {self.title} - {self.score}"
         return f"({self.movie_id}) {self.title}"
+    
+@dataclass
+class ChunkSearchResult:
+    id: int
+    title: str
+    document: str
+    score: float
+    metadata: Optional[Dict[str, Any]]
+
+    def __str__(self) -> str:
+        return f"({self.id}) {self.title} - {self.score} - {self.document}"
