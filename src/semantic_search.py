@@ -40,6 +40,10 @@ def main():
 
     embed_chunks_parser = subparsers.add_parser('embed-chunks', help='Embed document chunks')
 
+    search_chunk_parser = subparsers.add_parser('search_chunked', help='search for most relevant chunks')
+    search_chunk_parser.add_argument('query', type=str, help='Query to search')
+    search_chunk_parser.add_argument('--limit', type=int, default=5, help='number of results to return (default: 5)')
+
     args = parser.parse_args()
 
     match args.command:
@@ -83,6 +87,15 @@ def main():
             vector = Chunking()
             embeddings = vector.load_or_create_chunk_embeddings(movies)
             print(f"Generated {len(embeddings)} chunked embeddings")
+
+        case 'search_chunked':
+            movies = load_movies()
+            chunker = Chunking()
+            embeddings = chunker.load_or_create_chunk_embeddings(movies)
+            results = chunker.search_chunks(args.query, args.limit)
+            for result in results:
+                print(result)
+            pass
 
         case _:
             parser.print_help()

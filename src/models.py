@@ -27,4 +27,4 @@ class ChunkSearchResult:
     metadata: Optional[Dict[str, Any]]
 
     def __str__(self) -> str:
-        return f"({self.id}) {self.title} - {self.score} - {self.document}"
+        return f"({self.id}) {self.title} - {self.score:.4f} - {self.document}"

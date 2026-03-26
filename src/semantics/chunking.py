@@ -69,9 +69,9 @@ class Chunking(Embeddings):
     def search_chunks(self, query: str, limit: int = 10):
         embedder = Embeddings()
         query_embedding = embedder.generate_embedding(query)
-        chunk_scores = [{}]
+        chunk_scores = []
 
-        for idx, chunk_embedding in self.chunk_embeddings:
+        for idx, chunk_embedding in enumerate(self.chunk_embeddings):
             similarity = embedder.cosine_similar(chunk_embedding, query_embedding)
             metadata = self.chunk_metadata[idx]
             
@@ -84,10 +84,10 @@ class Chunking(Embeddings):
         movie_scores = {}
 
         for chunk_score in chunk_scores:
-            if chunk_score["movie_idx"] not in movie_scores or chunk_score["score"] > movie_scores[chunk_score["movie_idx"]]:
-                movie_scores[chunk_score["movie_idx"]] = chunk_score["score"]
+            if chunk_score["movie_idx"] not in movie_scores or chunk_score["score"] > movie_scores[chunk_score["movie_idx"]]["score"]:
+                movie_scores[chunk_score["movie_idx"]] = chunk_score
 
-        movie_scores = sorted(movie_scores.values(), lambda x: x["score"], reverse=True)
+        movie_scores = sorted(movie_scores.values(), key = lambda x: x["score"], reverse=True)
         movie_scores = movie_scores[:limit]
 
         final_result = []
