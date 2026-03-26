@@ -5,6 +5,7 @@ import numpy as np
 from lib.file_handler import CACHE_DIR
 from semantics.embedding import Embeddings
 from models import ChunkSearchResult
+from lib.utils import split_semantic_sentences
 
 CHUNK_EMBEDDING_PATH = CACHE_DIR / 'chunk_embeddings.npy'
 CHUNK_METADATA_PATH = CACHE_DIR / 'chunk_metadata.json'
@@ -115,10 +116,15 @@ class Chunking(Embeddings):
         return final_result
 
 def semantic_chunk(text: str, max_chunk_size: int, overlap: int):
-    sentences = re.split(r"(?<=[.!?])\s+", text)
+    sentences = split_semantic_sentences(text)
+
+    if not sentences:
+        return []
+    
     total_sentences = len(sentences)
     chunks = []
     step = max(1, max_chunk_size - overlap)
+    
     for j in range(0, total_sentences, step):
         chunks.append(' '.join(sentences[j: j+max_chunk_size]))
     return chunks

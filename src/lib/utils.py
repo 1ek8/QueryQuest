@@ -3,11 +3,15 @@ import string
 from nltk.stem import PorterStemmer
 import numpy as np
 from lib.file_handler import load_stopwords
+import re
 
 stemmer = PorterStemmer()
 
 BM25_K1 = 1.5
 BM25_B = 0.75
+
+SENTENCE_SPLIT_PATTERN = re.compile(r"(?<=[.!?])\s+")
+SENTENCE_END_PUNCTUATION = (".", "!", "?")
 
 def preprocess(input: str) -> list[str]:
     input = cleanse(input)
@@ -59,3 +63,21 @@ def cosine_similarity(vec1, vec2):
         return 0.0
 
     return dot_product / (norm1 * norm2)
+
+def split_semantic_sentences(text: str) -> list[str]:
+    text = text.strip()
+    if not text:
+        return []
+
+    sentences = SENTENCE_SPLIT_PATTERN.split(text)
+
+    if len(sentences) == 1 and not text.endswith(SENTENCE_END_PUNCTUATION):
+        return [text]
+
+    cleaned_sentences = []
+    for sentence in sentences:
+        sentence = sentence.strip()
+        if sentence:
+            cleaned_sentences.append(sentence)
+
+    return cleaned_sentences
